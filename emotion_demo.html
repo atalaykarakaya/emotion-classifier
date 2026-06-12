@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emo Challenge 2026 — Emotion Classifier</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0a0a0f;
+    --bg2:       #111118;
+    --bg3:       #1a1a25;
+    --border:    #2a2a3a;
+    --accent:    #7c6dfa;
+    --accent2:   #fa6d8a;
+    --text:      #e8e8f0;
+    --text-dim:  #666680;
+    --furious:   #ff4444;
+    --happy:     #ffd700;
+    --neutral:   #8899aa;
+    --sad:       #4488ff;
+    --shocked:   #aa44ff;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,109,250,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,109,250,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-area h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .logo-area p {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 6px 14px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 20px;
+    letter-spacing: 1px;
+  }
+
+  /* Accuracy strip */
+  .accuracy-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+
+  .stat-card:hover { border-color: var(--accent); }
+
+  .stat-card .value {
+    font-size: 32px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .stat-card .label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Main panel */
+  .main-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .panel-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .panel-header .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .panel-header span {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text);
+  }
+
+  .panel-body { padding: 24px; }
+
+  /* Upload area */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(124, 109, 250, 0.05);
+  }
+
+  .upload-zone .icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .upload-zone h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .upload-zone p {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+  }
+
+  #file-input { display: none; }
+
+  /* OR divider */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 20px 0;
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+  }
+
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Mic button */
+  .mic-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .mic-btn {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    font-size: 32px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    outline: none;
+  }
+
+  .mic-btn:hover {
+    border-color: var(--accent2);
+    box-shadow: 0 0 20px rgba(250, 109, 138, 0.2);
+  }
+
+  .mic-btn.recording {
+    border-color: var(--accent2);
+    background: rgba(250, 109, 138, 0.1);
+    animation: mic-pulse 1s infinite;
+  }
+
+  @keyframes mic-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(250,109,138,0.4); }
+    50% { box-shadow: 0 0 0 16px rgba(250,109,138,0); }
+  }
+
+  .mic-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Waveform */
+  #waveform {
+    width: 100%;
+    height: 60px;
+    margin: 16px 0;
+    display: none;
+  }
+
+  /* Analyze button */
+  .analyze-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--accent), #9c6dfa);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 20px;
+    text-transform: uppercase;
+    display: none;
+  }
+
+  .analyze-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(124,109,250,0.4);
+  }
+
+  .analyze-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Result panel */
+  .result-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .result-panel.visible { display: block; }
+
+  .result-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .result-body { padding: 24px; }
+
+  .emotion-display {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+
+  .emotion-emoji {
+    font-size: 72px;
+    line-height: 1;
+    animation: emotion-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes emotion-in {
+    from { transform: scale(0.3) rotate(-20deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  .emotion-info h2 {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+  }
+
+  .emotion-info p {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* Probability bars */
+  .prob-bars { display: flex; flex-direction: column; gap: 10px; }
+
+  .prob-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 50px;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .prob-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .prob-label.active { color: var(--text); }
+
+  .prob-track {
+    height: 6px;
+    background: var(--bg3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .prob-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s cubic-bezier(0.34, 1.2, 0.64, 1);
+    width: 0%;
+  }
+
+  .prob-pct {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: right;
+  }
+
+  .prob-pct.active { color: var(--text); font-weight: 700; }
+
+  /* File info */
+  .file-info {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: var(--bg3);
+    border-radius: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: none;
+  }
+
+  .file-info.visible { display: block; }
+
+  /* Loading */
+  .loading-overlay {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 48px 24px;
+  }
+
+  .loading-overlay.visible { display: flex; }
+
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  /* Error */
+  .error-msg {
+    background: rgba(255,68,68,0.1);
+    border: 1px solid rgba(255,68,68,0.3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: #ff6666;
+    margin-top: 16px;
+    display: none;
+  }
+
+  .error-msg.visible { display: block; }
+
+  /* Footer */
+  footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  footer p {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+  }
+
+  /* Note box */
+  .note-box {
+    background: rgba(124,109,250,0.08);
+    border: 1px solid rgba(124,109,250,0.2);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-top: 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.8;
+  }
+
+  .note-box strong {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  canvas#waveform { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-area">
+      <h1>🎙️ Emotion Classifier</h1>
+      <p>BIL216 Signals & Systems · Emo Challenge 2026 · Group 11</p>
+    </div>
+    
+  </header>
+
+  <!-- Stats -->
+  <div class="accuracy-strip">
+    <div class="stat-card">
+      <div class="value" id="accuracy-val">76.38%</div>
+      <div class="label">Final Accuracy</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">GB+SVM+MLP</div>
+      <div class="label">Voting Ensemble</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">~560</div>
+      <div class="label">Feature Dims</div>
+    </div>
+  </div>
+
+  <!-- Upload / Record Panel -->
+  <div class="main-panel">
+    <div class="panel-header">
+      <div class="dot"></div>
+      <span>Audio Input</span>
+    </div>
+    <div class="panel-body">
+
+      <!-- Upload Zone -->
+      <div class="upload-zone" id="upload-zone">
+        <span class="icon">🎵</span>
+        <h3>Drop a WAV file here</h3>
+        <p>or click to browse · WAV format only</p>
+        <input type="file" id="file-input" accept=".wav,audio/wav">
+      </div>
+
+      <div class="file-info" id="file-info"></div>
+
+      <div class="divider">or record live</div>
+
+      <!-- Mic Section -->
+      <div class="mic-section">
+        <button class="mic-btn" id="mic-btn" title="Hold to record">🎤</button>
+        <span class="mic-label" id="mic-label">Click to record (3 sec)</span>
+      </div>
+
+      <canvas id="waveform" height="60"></canvas>
+
+      <button class="analyze-btn" id="analyze-btn">▶ Analyze Emotion</button>
+
+      <div class="error-msg" id="error-msg"></div>
+
+      <div class="note-box">
+        <strong>Note:</strong> This is a frontend demo interface.<br>
+        To run full predictions, connect to the Python backend:<br>
+        <code>python predict.py --file your_audio.wav</code><br>
+        The demo below simulates the model output for presentation purposes.
+      </div>
+    </div>
+  </div>
+
+  <!-- Result Panel -->
+  <div class="result-panel" id="result-panel">
+    <div class="result-header">Analysis Result</div>
+    <div class="result-body">
+      <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Extracting features...</div>
+      </div>
+      <div id="result-content" style="display:none">
+        <div class="emotion-display">
+          <div class="emotion-emoji" id="result-emoji">😐</div>
+          <div class="emotion-info">
+            <h2 id="result-label" style="color: var(--neutral)">NEUTRAL</h2>
+            <p id="result-confidence">Confidence: —</p>
+          </div>
+        </div>
+        <div class="prob-bars" id="prob-bars"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>Atalay Karakaya · Nazlı Baş · Irmak Barni</p>
+    <p>BIL216 Final Project · 2025–2026 Spring</p>
+  </footer>
+
+</div>
+
+<script>
+const EMOTIONS = {
+  furious: { emoji: '😠', color: '#ff4444' },
+  happy:   { emoji: '😊', color: '#ffd700' },
+  neutral: { emoji: '😐', color: '#8899aa' },
+  sad:     { emoji: '😢', color: '#4488ff' },
+  shocked: { emoji: '😲', color: '#aa44ff' },
+};
+
+let selectedFile = null;
+let audioBlob = null;
+let mediaRecorder = null;
+let recordingChunks = [];
+let isRecording = false;
+let recordingTimer = null;
+
+// --- Upload Zone ---
+const uploadZone = document.getElementById('upload-zone');
+const fileInput  = document.getElementById('file-input');
+const fileInfo   = document.getElementById('file-info');
+const analyzeBtn = document.getElementById('analyze-btn');
+const errorMsg   = document.getElementById('error-msg');
+
+uploadZone.addEventListener('click', () => fileInput.click());
+
+uploadZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  uploadZone.classList.add('dragover');
+});
+
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+
+uploadZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  if (!file.name.toLowerCase().endsWith('.wav')) {
+    showError('Only WAV files are supported.');
+    return;
+  }
+  selectedFile = file;
+  audioBlob = null;
+  fileInfo.textContent = `📁 ${file.name} · ${(file.size / 1024).toFixed(1)} KB`;
+  fileInfo.classList.add('visible');
+  analyzeBtn.style.display = 'block';
+  hideError();
+}
+
+// --- Mic Recording ---
+const micBtn   = document.getElementById('mic-btn');
+const micLabel = document.getElementById('mic-label');
+
+micBtn.addEventListener('click', async () => {
+  if (isRecording) return;
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    recordingChunks = [];
+    isRecording = true;
+    micBtn.classList.add('recording');
+    micBtn.textContent = '⏹️';
+    micLabel.textContent = 'Recording... (3 sec)';
+
+    mediaRecorder.ondataavailable = (e) => recordingChunks.push(e.data);
+
+    mediaRecorder.onstop = () => {
+      audioBlob = new Blob(recordingChunks, { type: 'audio/wav' });
+      selectedFile = null;
+      fileInfo.textContent = `🎤 Live recording · ${(audioBlob.size / 1024).toFixed(1)} KB`;
+      fileInfo.classList.add('visible');
+      analyzeBtn.style.display = 'block';
+      stream.getTracks().forEach(t => t.stop());
+      isRecording = false;
+      micBtn.classList.remove('recording');
+      micBtn.textContent = '🎤';
+      micLabel.textContent = 'Click to record (3 sec)';
+    };
+
+    mediaRecorder.start();
+
+    recordingTimer = setTimeout(() => {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    }, 3000);
+
+  } catch (err) {
+    showError('Microphone access denied. Please allow microphone permission.');
+  }
+});
+
+// --- Analyze ---
+analyzeBtn.addEventListener('click', () => {
+  if (!selectedFile && !audioBlob) return;
+  runAnalysis();
+});
+
+function runAnalysis() {
+  const resultPanel = document.getElementById('result-panel');
+  const loading     = document.getElementById('loading');
+  const resultContent = document.getElementById('result-content');
+
+  resultPanel.classList.add('visible');
+  loading.classList.add('visible');
+  resultContent.style.display = 'none';
+  analyzeBtn.disabled = true;
+  analyzeBtn.textContent = '⏳ Analyzing...';
+
+  // Simulate analysis delay (replace with real API call if backend is running)
+  setTimeout(() => {
+    const result = simulateModel();
+    showResult(result);
+    loading.classList.remove('visible');
+    resultContent.style.display = 'block';
+    analyzeBtn.disabled = false;
+    analyzeBtn.textContent = '▶ Analyze Emotion';
+    resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 1800);
+}
+
+function simulateModel() {
+  // Simulated output — replace with real fetch() to Python backend
+  const emotions = Object.keys(EMOTIONS);
+  const winner = emotions[Math.floor(Math.random() * emotions.length)];
+  const probs = {};
+  let remaining = 1.0;
+  emotions.forEach((e, i) => {
+    if (i === emotions.length - 1) {
+      probs[e] = parseFloat(remaining.toFixed(4));
+    } else if (e === winner) {
+      probs[e] = parseFloat((0.35 + Math.random() * 0.35).toFixed(4));
+      remaining -= probs[e];
+    } else {
+      const v = parseFloat((Math.random() * (remaining / (emotions.length - i))).toFixed(4));
+      probs[e] = v;
+      remaining -= v;
+    }
+  });
+  // Make winner the highest
+  const maxOther = Math.max(...emotions.filter(e => e !== winner).map(e => probs[e]));
+  if (probs[winner] <= maxOther) probs[winner] = maxOther + 0.1;
+  // Normalize
+  const total = Object.values(probs).reduce((a, b) => a + b, 0);
+  Object.keys(probs).forEach(e => probs[e] = parseFloat((probs[e] / total).toFixed(4)));
+  return { label: winner, probs };
+}
+
+function showResult({ label, probs }) {
+  const emo = EMOTIONS[label] || { emoji: '🎵', color: '#ffffff' };
+
+  const emojiEl = document.getElementById('result-emoji');
+  const labelEl = document.getElementById('result-label');
+  const confEl  = document.getElementById('result-confidence');
+  const barsEl  = document.getElementById('prob-bars');
+
+  emojiEl.textContent = emo.emoji;
+  emojiEl.style.animation = 'none';
+  requestAnimationFrame(() => emojiEl.style.animation = 'emotion-in 0.4s cubic-bezier(0.34,1.56,0.64,1)');
+
+  labelEl.textContent = label.toUpperCase();
+  labelEl.style.color = emo.color;
+
+  const conf = probs[label];
+  confEl.textContent = `Confidence: ${(conf * 100).toFixed(1)}%`;
+
+  // Build bars
+  barsEl.innerHTML = '';
+  const sorted = Object.entries(probs).sort((a, b) => b[1] - a[1]);
+  sorted.forEach(([emotion, prob]) => {
+    const eInfo = EMOTIONS[emotion] || { emoji: '?', color: '#888' };
+    const isWinner = emotion === label;
+    const row = document.createElement('div');
+    row.className = 'prob-row';
+    row.innerHTML = `
+      <div class="prob-label ${isWinner ? 'active' : ''}">
+        <span>${eInfo.emoji}</span>
+        <span>${emotion}</span>
+      </div>
+      <div class="prob-track">
+        <div class="prob-fill" style="background:${eInfo.color}; width:0%"
+             data-target="${(prob * 100).toFixed(1)}"></div>
+      </div>
+      <div class="prob-pct ${isWinner ? 'active' : ''}">${(prob * 100).toFixed(1)}%</div>
+    `;
+    barsEl.appendChild(row);
+  });
+
+  // Animate bars
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.prob-fill').forEach(bar => {
+      bar.style.width = bar.dataset.target + '%';
+    });
+  });
+}
+
+function showError(msg) {
+  errorMsg.textContent = '⚠️ ' + msg;
+  errorMsg.classList.add('visible');
+}
+
+function hideError() {
+  errorMsg.classList.remove('visible');
+}
+</script>
+</body>
+</html>
